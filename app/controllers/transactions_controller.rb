@@ -15,9 +15,11 @@ class TransactionsController < ApplicationController
 
   # POST /transactions
   def create
-    @transaction = Transaction.new(transaction_params)
-
-    byebug
+    @transaction = Transaction.new(payer: transaction_params[:payer], points: transaction_params[:points])
+    
+    parsedTime = DateTime.strptime(transaction_params[:timestamp], '%Y-%m-%dT%H:%M:%SZ')
+    
+    @transaction.timestamp = parsedTime
 
     if @transaction.save
       render json: @transaction, status: :created, location: @transaction

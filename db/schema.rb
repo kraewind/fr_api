@@ -10,12 +10,12 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_08_30_212310) do
+ActiveRecord::Schema.define(version: 2021_08_30_213627) do
 
   create_table "transactions", force: :cascade do |t|
     t.string "payer"
     t.integer "points"
-    t.string "timestamp"
+    t.datetime "timestamp"
   end
 
 end
