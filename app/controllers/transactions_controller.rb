@@ -2,36 +2,73 @@ class TransactionsController < ApplicationController
   
   # POST /transactions
   def create
-    @transaction = Transaction.new(points: transaction_params[:points])
-    
-    parsedTime = DateTime.strptime(transaction_params[:timestamp], '%Y-%m-%dT%H:%M:%SZ')
-    
-    @transaction.timestamp = parsedTime
-
     @payer = Payer.find_or_create_by(name: transaction_params[:payer])
-
-    @payer.points += @transaction.points
-
-    if @transaction.save
-      render json: @transaction, status: :created, location: @transaction
+    
+    if @payer
+      @payer.update(points: (@payer.points + transaction_params[:points]))
+      if @payer.save
+        @payer.transactions.create(points: transaction_params[:points], timestamp: (DateTime.strptime(transaction_params[:timestamp], '%Y-%m-%dT%H:%M:%SZ')), remaining_balance: transaction_params[:points], previous_remaining_value: transaction_params[:points])
+        render json: @payer.transactions.last, status: :created, location: @payer.transactions.last
+      else
+        render json: @payer.errors, status: :unprocessable_entity
+      end
     else
-      render json: @transaction.errors, status: :unprocessable_entity
+      render json: @payer.errors, status: :unprocessable_entity
     end
   end
 
-  # PATCH /transactions
+  # PATCH /spend
   def update
-    if @transaction.update(transaction_params)
-      render json: @transaction
-    else
-      render json: @transaction.errors, status: :unprocessable_entity
+    unusedTransactions = Transaction.all.find_all { |transaction| transaction.used == false }
+
+    remainingTotalForAccount = 0
+
+    unusedTransactions.each do |transaction|
+      remainingTotalForAccount += transaction.remaining_balance
     end
+
+    if remainingTotalForAccount < transaction_params[:points]
+      render json: "Insufficient points"
+    else
+
+      @sortedDateTransactions = unusedTransactions.sort_by{ |transaction| transaction.timestamp }
+  
+      i = 0
+      count = 0
+  
+      @usedTransactionsForThisSpend = []
+
+      @firstAndLastTransactionForThisSpendAmountSpent = []
+      
+      until (count >= transaction_params[:points]) || (i == @sortedDateTransactions.length) do
+        if i == 0 || i == (@sortedDateTransactions.length - 1)
+          @firstAndLastTransactionForThisSpendAmountSpent.push()
+        end
+        count += @sortedDateTransactions[i].remaining_balance
+        @sortedDateTransactions[i].update(remaining_balance: 0, used: true, previous_remaining_value: @sortedDateTransactions[i].remaining_balance)
+        @usedTransactionsForThisSpend.push(@sortedDateTransactions[i])
+        @oldestRemainingTransaction = @sortedDateTransactions[i]
+        i += 1
+      end
+      
+      @arrayToBeRendered = []
+  
+      if @oldestRemainingTransaction && @oldestRemainingTransaction.update(remaining_balance: (count - transaction_params[:points]), used: (count - transaction_params[:points] == 0))
+        @usedTransactionsForThisSpend.each do |transaction|
+          @arrayToBeRendered.push({"payer": transaction.payer.name, "points": (transaction.remaining_balance - transaction.previous_remaining_value)})
+        end
+        render json: @arrayToBeRendered
+      else
+        render json: @oldestRemainingTransaction.errors, status: :unprocessable_entity
+      end
+    end
+
   end
 
 
   private
     # Only allow a list of trusted parameters through.
     def transaction_params
-      params.require(:transaction).permit(:points, :timestamp)
+      params.require(:transaction).permit(:payer, :points, :timestamp)
     end
 end
