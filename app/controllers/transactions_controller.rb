@@ -50,14 +50,27 @@ class TransactionsController < ApplicationController
         @oldestRemainingTransaction = @sortedDateTransactions[i]
         i += 1
       end
-      
-      @arrayToBeRendered = []
+      @arrayBeforeConsolidated = []
   
       if @oldestRemainingTransaction && @oldestRemainingTransaction.update(remaining_balance: (count - transaction_params[:points]), used: (count - transaction_params[:points] == 0))
         @usedTransactionsForThisSpend.each do |transaction|
-          @arrayToBeRendered.push({"payer": transaction.payer.name, "points": (transaction.remaining_balance - transaction.previous_remaining_value)})
+          transaction.payer.update(points: (transaction.payer.points + (transaction.remaining_balance - transaction.previous_remaining_value)))
+          @arrayBeforeConsolidated.push({"payer": transaction.payer.name, "points": (transaction.remaining_balance - transaction.previous_remaining_value)})
         end
-        render json: @arrayToBeRendered
+        consolidatedArray = []
+        @arrayBeforeConsolidated.each |hashh| do 
+          existing = @arrayBeforeConsolidated.select {|t| t["payer"] == hashh["payer"]}
+          if (existing.length > 0)
+            points = 0
+            existing.each |e| do
+              points += e["points"]
+            end 
+            # existingIndex = consolidatedArray.index(existing[0])
+            # consolidatedArray[existingIndex]["points"] += hashh["points"]
+          else
+            consolidatedArray.push(hashh)
+          end
+        end
       else
         render json: @oldestRemainingTransaction.errors, status: :unprocessable_entity
       end
