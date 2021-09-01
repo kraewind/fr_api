@@ -10,7 +10,12 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_08_30_213627) do
+ActiveRecord::Schema.define(version: 2021_09_01_153045) do
+
+  create_table "payers", force: :cascade do |t|
+    t.string "name"
+    t.integer "points"
+  end
 
   create_table "transactions", force: :cascade do |t|
     t.string "payer"
