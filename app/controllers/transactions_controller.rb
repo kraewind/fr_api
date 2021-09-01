@@ -3,12 +3,14 @@ class TransactionsController < ApplicationController
   # POST /transactions
   def create
     @transaction = Transaction.new(points: transaction_params[:points])
-
-    @payer = Payer.find_or_create_by(name: transaction_params[:payer])
     
     parsedTime = DateTime.strptime(transaction_params[:timestamp], '%Y-%m-%dT%H:%M:%SZ')
     
     @transaction.timestamp = parsedTime
+
+    @payer = Payer.find_or_create_by(name: transaction_params[:payer])
+
+    @payer.points += @transaction.points
 
     if @transaction.save
       render json: @transaction, status: :created, location: @transaction
