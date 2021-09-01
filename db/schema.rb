@@ -14,7 +14,7 @@ ActiveRecord::Schema.define(version: 2021_09_01_153522) do
 
   create_table "payers", force: :cascade do |t|
     t.string "name"
-    t.integer "points"
+    t.integer "points", default: 0
   end
 
   create_table "transactions", force: :cascade do |t|
