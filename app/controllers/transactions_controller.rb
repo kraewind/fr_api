@@ -32,7 +32,6 @@ class TransactionsController < ApplicationController
     else
 
       @sortedDateTransactions = unusedTransactions.sort_by{ |transaction| transaction.timestamp }
-  
       i = 0
       count = 0
   
