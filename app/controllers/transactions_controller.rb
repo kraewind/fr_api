@@ -53,7 +53,11 @@ class TransactionsController < ApplicationController
   
       if @oldestRemainingTransaction && @oldestRemainingTransaction.update(remaining_balance: (count - transaction_params[:points]), used: (count - transaction_params[:points] == 0))
         @usedTransactionsForThisSpend.each do |transaction|
-          transaction.payer.update(points: (transaction.payer.points + (transaction.remaining_balance - transaction.previous_remaining_value)))
+          if transaction.previous_remaining_value >= 0
+            transaction.payer.update(points: (transaction.payer.points + (transaction.remaining_balance - transaction.previous_remaining_value)))
+          else
+            transaction.payer.update(points: (transaction.payer.points + transaction.previous_remaining_value))
+          end
           if @hashToConsolidate.keys.include?(transaction.payer.name)
             @hashToConsolidate[transaction.payer.name] += (transaction.remaining_balance - transaction.previous_remaining_value)
           else
