@@ -8,7 +8,7 @@ class PayersController < ApplicationController
       hashToBeRendered[payer.name] = payer.points
     end
 
-    render json: @payers
+    render json: hashToBeRendered
   end
 
 end
